@@ -1,5 +1,7 @@
 # Compiler
-Project of a compiler for a fictitious language for the Compilers course at Cefet-MG, teached by Kecia Marques.
+Project of a compiler for a fictitious language for the Compilers course at Cefet-MG, taught by Kecia Marques.
+
+A special thanks to Andrei Rimsa, Programming Languages, and Formal Languages and Automata teacher at Cefet-MG, that made available a Tiny interpreter as a reference in Programming Languages, but now have been helpful as well in Compilers (https://github.com/rimsa/tiny).
 
 ## Code example: 
 
