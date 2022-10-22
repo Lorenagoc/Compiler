@@ -11,9 +11,8 @@
  * Disponível em: https://github.com/rimsa/tiny. Acesso em: 25 set. 2022.
  * */
 
-import lexico.Lexema;
-import lexico.Lexico;
-import lexico.Tag;
+import lexico.AnalisadorLexico;
+import sintatico.AnalisadorSintatico;
 
 public class Compilador {
 
@@ -28,33 +27,13 @@ public class Compilador {
         }
 
         String arquivo = "src/examples/"+args[0]+".txt";
-        int erros = 0;
 
-        try (Lexico lexico = new Lexico(arquivo)) {
-            Lexema lexema;
-            while (getTipo((lexema = lexico.scan()).tipo)) {
-                switch (lexema.tipo) {
-                    case TOKEN_INVALIDO:
-                        System.out.println(PRINT_RED + "L" + lexico.getLinha() + ": Erro léxico, o token <" + lexema.token + "> é inválido." + RESET_COLOR);
-                        erros++;
-                        break;
-                    case ERRO_EOF:
-                        System.out.println(PRINT_RED + "L" + lexico.getLinha() + ": Erro léxico. Fim de arquivo inesperado." + RESET_COLOR);
-                        erros++;
-                        break;
-                    default:
-                        System.out.println("<" + lexema.token + ", " + lexema.tipo + ">");
-                        break;
-                }
-            }
-            if (erros == 0) System.out.println(PRINT_GREEN + "\nPrograma compilado com sucessso!");
+        try (AnalisadorLexico lexico = new AnalisadorLexico(arquivo)) {
+            AnalisadorSintatico sintatico = new AnalisadorSintatico(lexico);
+            sintatico.executar();
         } catch (Exception e) {
             e.printStackTrace();
             System.err.println("Internal error: " + e.getMessage());
         }
-    }
-
-    private static boolean getTipo(Tag tipo) {
-        return tipo != Tag.EOF;
     }
 }

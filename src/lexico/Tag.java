@@ -27,6 +27,7 @@ public enum Tag {
     OR, // ||
     AND, // &&
     NOT, // !
+    PLUS, // +
     MINUS, // -
     ASSIGN, // =
     MULT, // *
@@ -37,6 +38,8 @@ public enum Tag {
     COMMA, // ,
     OPEN_PAR, // (
     CLOSE_PAR, // )
+    OPEN_KEY, // {
+    CLOSE_KEY, // }
 
     // Outros
     LITERAL,

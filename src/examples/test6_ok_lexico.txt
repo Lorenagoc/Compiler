@@ -2,10 +2,10 @@ start
 	int n, fib, aux;
 	fib = 0;
 	aux = 0;
-	print("Digite um numero: ");
-	scan(%n);
-	print("Serie de Fibonacci);
-	while(fib < 1000)
+	print({Digite um numero: });
+	scan(n);
+	print({Serie de Fibonacci})
+	while(fib < 1000) 
 		print(fib);
 		fib = fib + aux;
 		aux = n;

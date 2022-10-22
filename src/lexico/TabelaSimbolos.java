@@ -35,6 +35,7 @@ public class TabelaSimbolos {
         ts.put("||", Tag.OR);
         ts.put("&&", Tag.AND);
         ts.put("!", Tag.NOT);
+        ts.put("+", Tag.PLUS);
         ts.put("-", Tag.MINUS);
         ts.put("=", Tag.ASSIGN);
         ts.put("*", Tag.MULT);
@@ -45,6 +46,8 @@ public class TabelaSimbolos {
         ts.put(",", Tag.COMMA);
         ts.put("(", Tag.OPEN_PAR);
         ts.put(")", Tag.CLOSE_PAR);
+        ts.put("{", Tag.OPEN_KEY);
+        ts.put("}", Tag.CLOSE_KEY);
 
     }
 

@@ -2,15 +2,13 @@ start
 	int n, fib, aux;
 	fib = 0;
 	aux = 0;
-
-	print("Digite um numero: ");
+	print({Digite um numero: });
 	scan(n);
-	print("Serie de Fibonacci");
-
-	while(fib < 1000) 
+	print({Serie de Fibonacci: });
+	do
 		print(fib);
 		fib = fib + aux;
 		aux = n;
 		n = fib;
-	end
+	while (fib < 1000) end
 exit 

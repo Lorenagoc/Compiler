@@ -4,13 +4,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PushbackInputStream;
 
-public class Lexico implements AutoCloseable {
+public class AnalisadorLexico implements AutoCloseable {
 
     private int linha;
     private TabelaSimbolos ts;
     private PushbackInputStream arquivo;
 
-    public Lexico(String nomeArquivo) throws LexicalException {
+    public AnalisadorLexico(String nomeArquivo) throws LexicalException {
         try {
             arquivo = new PushbackInputStream(new FileInputStream(nomeArquivo));
         } catch (Exception e) {
@@ -32,16 +32,11 @@ public class Lexico implements AutoCloseable {
         while (estado != 12 && estado != 13) {
             int ch = arquivo.read();
 
-            if (ch == -1 && estado != 1) {
-                lexema.tipo = Tag.ERRO_EOF;
-                break;
-            }
-
             switch (estado) {
                 case 1:
                     if (ch == ' ' || ch == '\t' || ch == '\r') break;
                     else if (ch == '\n') linha++;
-                    else if (ch == '\"') estado = 2;
+                    else if (ch == '{') estado = 2;
                     else if (Character.isLetter(ch) && ch != 255) {
                         readCh(lexema, (char) ch);
                         estado = 3;
@@ -78,7 +73,7 @@ public class Lexico implements AutoCloseable {
                     break;
 
                 case 2:
-                    if (ch == '"') {
+                    if (ch == '}') {
                         lexema.tipo = Tag.LITERAL;
                         estado = 13;
                     } else {
