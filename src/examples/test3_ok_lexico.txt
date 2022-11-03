@@ -1,4 +1,3 @@
-start
     int pontuacao, pontuacaoMaxima, disponibilidade;
     string pontuacaoMinima;
     disponibilidade = {Sim};
@@ -13,7 +12,7 @@ start
         print({Disponibilidade Candidado: });
         scan(disponibilidade);
 
-        if ((pontuacao > pontuacaoMinima) and (disponibilidade == {Sim})) then
+        if ((pontuacao > pontuacaoMinia) and (disponibilidade == {Sim})) then
             out({Candidato aprovado});
         else
             out({Candidato reprovado})

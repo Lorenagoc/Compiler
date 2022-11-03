@@ -1,7 +1,7 @@
 start
     Int a, aux, b;
     string nome, sobrenome, msg;
-    print({Nome:});
+    print({Nome: });
     scan (nome);
     msg = {Ola, } + nome + { } + sobrenome + {!};
     msg = msg + 1;

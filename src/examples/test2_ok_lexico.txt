@@ -8,11 +8,10 @@ start
     Scan (c);
     b = a * a;
     c = b + a * (1 + a*c);
-    print ("Resultado: ");
+    print ({Resultado: });
     print c;
     d = 34.2;
     e = val + 2.2;
-    print ("E: ");
+    print ({E: });
     print (e);
     a = b + c + d)/2;
-exit 

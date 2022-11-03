@@ -15,13 +15,14 @@ start
         else
             if (b>c) then
                 maior = b;
+
             else
                 maior = c;
             end
         end
         print({Maior valor:});
         print (maior);
-        print({Outro? });
-        scan (outro);
+        print ({Outro? });
+        scan(outro);
     while (outro >= 0);
-exit 
+exit
