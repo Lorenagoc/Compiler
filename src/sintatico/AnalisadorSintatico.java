@@ -3,6 +3,10 @@ package sintatico;
 import lexico.AnalisadorLexico;
 import lexico.Lexema;
 import lexico.Tag;
+import objetos.Constante;
+import objetos.Identificador;
+import objetos.Tipo;
+import semantico.AnalisadorSemantico;
 
 import java.io.IOException;
 
@@ -13,10 +17,12 @@ public class AnalisadorSintatico {
 
     private AnalisadorLexico lexico;
     private Lexema tokenAtual;
+    private AnalisadorSemantico semantico;
 
     public AnalisadorSintatico(AnalisadorLexico lexico) throws IOException {
         this.lexico = lexico;
         this.tokenAtual = lexico.scan();
+        this.semantico = new AnalisadorSemantico(lexico);
     }
 
     public void executar() {
@@ -28,18 +34,21 @@ public class AnalisadorSintatico {
         tokenAtual = lexico.scan();
     }
 
-    private void consome(Tag tipo) {
-        System.out.println("Expected (..., " + tipo + "), found (\"" + tokenAtual.token + "\", " + tokenAtual.tipo + ")");
+    private Lexema consome(Tag tipo) {
+        System.out.println(lexico.getLinha() + " - Expected (" + tokenAtual.token + "), found (" + tokenAtual.tipo + ")");
         if(tipo == Tag.EOF) System.out.println(PRINT_GREEN + "Compilação finalizada com sucesso" + RESET_COLOR);
         if (tipo == tokenAtual.tipo) {
             try {
+                Lexema tokenAnterior = tokenAtual;
                 avance();
+                return tokenAnterior;
             } catch (IOException e) {
                 System.out.printf("Erro na leitura do token\n");
             }
         } else {
             mostraErro();
         }
+        return null;
     }
 
     private void mostraErro() {
@@ -60,47 +69,47 @@ public class AnalisadorSintatico {
     }
 
     // program ::= start [decl-list] stmt-list exit
+    // program ::= start [decl-list] stmt { stmt } exit
     private void procProgram() {
         consome(Tag.START);
+
         if (tokenAtual.tipo == Tag.INT || tokenAtual.tipo == Tag.FLOAT || tokenAtual.tipo == Tag.STRING) {
             procDeclList();
         }
-        procStmtList();
+
+        do {
+            procStmt();
+        } while (tokenAtual.tipo != Tag.EXIT);
         consome(Tag.EXIT);
     }
 
     // decl-list ::= decl {decl}
     private void procDeclList() {
-        procDecl();
-        while (tokenAtual.tipo == Tag.INT || tokenAtual.tipo == Tag.FLOAT || tokenAtual.tipo == Tag.STRING) {
-            procDecl();
-        }
-    }
+        do {
+            Tipo tipo = procType();
+            Lexema lexema = consome(Tag.IDENTIFIER);
+            semantico.procDecl(new Identificador(lexema.token, tipo));
+            while (tokenAtual.tipo == Tag.COMMA) {
+                consome(Tag.COMMA);
+                lexema = consome(Tag.IDENTIFIER);
+                semantico.procDecl(new Identificador(lexema.token, tipo));
+            }
+            consome(Tag.DOT_COMMA);
 
-    // decl ::= type ident-list ";"
-    private void procDecl() {
-        procType();
-        procIdentList();
-        consome(Tag.DOT_COMMA);
-    }
-
-    // ident-list ::= identifier {"," identifier}
-    private void procIdentList() {
-        procIdentifier();
-        while (tokenAtual.tipo == Tag.COMMA) {
-            consome(Tag.COMMA);
-            procIdentifier();
-        }
+        } while (tokenAtual.tipo == Tag.INT || tokenAtual.tipo == Tag.FLOAT || tokenAtual.tipo == Tag.STRING);
     }
 
     // type ::= int | float | string
-    private void procType() {
+    private Tipo procType() {
         if (tokenAtual.tipo == Tag.INT) {
             consome(Tag.INT);
+            return Tipo.INT;
         } else if (tokenAtual.tipo == Tag.FLOAT) {
             consome(Tag.FLOAT);
+            return Tipo.FLOAT;
         } else {
             consome(Tag.STRING);
+            return Tipo.STRING;
         }
     }
 
@@ -136,7 +145,7 @@ public class AnalisadorSintatico {
 
     // assign-stmt ::= identifier "=" simple_expr
     private void procAssignStmt() {
-        procIdentifier();
+        consome(Tag.IDENTIFIER);
         consome(Tag.ASSIGN);
         procSimpleExpr();
     }
@@ -201,55 +210,79 @@ public class AnalisadorSintatico {
 
     // expression ::= simple-expr | simple-expr relop simple-expr
     // expression ::= simple-expr { relop simple-expr }
-    private void procExpression() {
-        procSimpleExpr();
+    private Constante procExpression() {
+        Constante expression = procSimpleExpr();
         while (tokenAtual.tipo == Tag.EQUAL || tokenAtual.tipo == Tag.GREATER ||
                 tokenAtual.tipo == Tag.GREATER_OR_EQUAL || tokenAtual.tipo == Tag.LESS ||
                 tokenAtual.tipo == Tag.LESS_OR_EQUAL || tokenAtual.tipo == Tag.NOT_EQUAL) {
             procRelOp();
-            procSimpleExpr();
+            Constante operacao = procSimpleExpr();
+            expression = semantico.procExpressionRelOp(expression, operacao);
         }
+        return expression;
     }
 
     // simple-expr ::= term | simple-expr addop term
     // simple-expr ::= term { addop term }
-    private void procSimpleExpr() {
-        procTerm();
-        while(tokenAtual.tipo == Tag.PLUS || tokenAtual.tipo == Tag.MINUS || tokenAtual.tipo == Tag.OR){
+    private Constante procSimpleExpr() {
+        Constante term = procTerm();
+
+        while (tokenAtual.tipo == Tag.PLUS || tokenAtual.tipo == Tag.MINUS ||
+                tokenAtual.tipo == Tag.OR) {
+            Tag operacao = tokenAtual.tipo;
             procAddOp();
-            procTerm();
+            Constante addTerm = procTerm();
+            term = semantico.procTermSimpleExpr(term, addTerm, operacao);
         }
+        return term;
     }
 
     // term ::= factor-a | term mulop factor-a
     // term ::= factor-a { mulop factor-a }
-    private void procTerm() {
-        procFactorA();
-        while(tokenAtual.tipo == Tag.MULT || tokenAtual.tipo == Tag.DIV || tokenAtual.tipo == Tag.AND){
+    private Constante procTerm() {
+        Constante factor = procFactorA();
+
+        while (tokenAtual.tipo == Tag.MULT || tokenAtual.tipo == Tag.DIV ||
+                tokenAtual.tipo == Tag.AND) {
+            Tag operacao = tokenAtual.tipo;
             procMulOp();
-            procFactorA();
+            Constante mulFactor = procFactorA();
+            factor = semantico.procFactorMulOp(factor, mulFactor, operacao);
         }
+        return factor;
     }
 
     // factor-a ::= factor | "!" factor | "-" factor
-    private void procFactorA() {
+    private Constante procFactorA() {
+        Tag extraToken = null;
         if (tokenAtual.tipo == Tag.NOT || tokenAtual.tipo == Tag.MINUS) {
+            extraToken = tokenAtual.tipo;
             consome(tokenAtual.tipo);
         }
-        procFactor();
+        Constante factorConst = procFactor();
+        if (extraToken == Tag.NOT) {
+            return semantico.procFactorNot(factorConst);
+        }
+        if (extraToken == Tag.MINUS) {
+            return semantico.procFactorMinus(factorConst);
+        }
+        return factorConst;
     }
 
+
+
     // factor ::= identifier | constant | "(" expression ")"
-    private void procFactor() {
+    private Constante procFactor() {
         if (tokenAtual.tipo == Tag.IDENTIFIER) {
-            procIdentifier();
+            Lexema lexema = consome(Tag.IDENTIFIER);
+            return semantico.procFactorIdentifier(lexema.token);
         } else if (tokenAtual.tipo == Tag.OPEN_PAR) {
             consome(Tag.OPEN_PAR);
-            procExpression();
+            Constante valorExpressao = procExpression();
             consome(Tag.CLOSE_PAR);
-        } else {
-            procConstant();
+            return valorExpressao;
         }
+        return procConstant();
     }
 
     // relop ::= "==" | ">" | ">=" | "<" | "<=" | "<>"
@@ -292,33 +325,31 @@ public class AnalisadorSintatico {
     }
 
     // constant ::= integer_const | float_const | literal
-    private void procConstant() {
+    private Constante procConstant() {
         if (tokenAtual.tipo == Tag.INTEGER_CONST) {
-            procIntegerConst();
+            return procIntegerConst();
         } else if (tokenAtual.tipo == Tag.FLOAT_CONST) {
-            procFloatConst();
+            return procFloatConst();
         } else {
-            procLiteral();
+            return procLiteral();
         }
     }
 
     // integer_const ::= digit+
-    private void procIntegerConst() {
-        consome(Tag.INTEGER_CONST);
+    private Constante procIntegerConst() {
+        return new Constante(Integer.parseInt(consome(Tag.INTEGER_CONST).token), Tipo.INT);
     }
 
     // float_const ::= digit+ “.” digit+
-    private void procFloatConst() {
-        consome(Tag.FLOAT_CONST);
+    private Constante procFloatConst() {
+        return new Constante(Float.parseFloat(consome(Tag.FLOAT_CONST).token), Tipo.FLOAT);
     }
 
     // literal ::= " { " {caractere} " } "
-    private void procLiteral() {
-        consome(Tag.LITERAL);
+    private Constante procLiteral() {
+        return new Constante(consome(Tag.LITERAL).token, Tipo.STRING);
     }
 
     // identifier ::= (letter | _ ) (letter | digit )*
-    private void procIdentifier() {
-        consome(Tag.IDENTIFIER);
-    }
+    private void procIdentifier() { consome(Tag.IDENTIFIER); }
 }
